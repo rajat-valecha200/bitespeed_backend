@@ -59,12 +59,18 @@ async function validator(email, phoneNo, pool){
     client.release();
     if(result.rows.length > 0){
         let dataSet = result.rows[0];
-        return dataSet;
-        // if(dataSet.lid || dataSet.mid){
-        //     return {id:lid, linkPerecedency:"Secondary"}
-        // } else {
-        //     return {id:mid, linkPerecedency:"Secondary"}
-        // }
+        // return dataSet;
+        if(dataSet.lid || dataSet.mid){
+            let id = null;
+            if(dataSet.lid){
+                id = dataSet.lid;
+            } else {
+                id = dataSet.mid;
+            }
+            return {id:id, linkPerecedency:"Secondary"}
+        } else {
+            return {id:null, linkPerecedency:"Primary"}
+        }
     }
 }
 
@@ -75,11 +81,11 @@ app.post("/identity",async(req, res)=>{
             if(email || phoneNo){
                 const client = await pool.connect();
                 let idList = await validator(email, phoneNo, pool);
-                console.log(idList);
+                // console.log(idList);
                 
                 const qryStr = `insert into contacts
-                ("phoneNumber", "email", "linkPrecedency", "createdAt", "updatedAt") 
-                values ('${phoneNo}','${email}','Primary',now(), now()) 
+                ("phoneNumber", "email", "linkedId", "linkPrecedency", "createdAt", "updatedAt") 
+                values ('${phoneNo}','${email}','${idList.id}','${idList.linkPerecedency}',now(), now()) 
                 returning id`;
                 const result = await client.query(qryStr);
                 client.release();
